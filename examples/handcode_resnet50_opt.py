@@ -74,21 +74,6 @@ if __name__ == "__main__":
 
           if DEBUG >= 1:
             for l, opts, t in beams: print(f"{t*1e3:10.2f} ms from {len(opts):3d} actions", l.colored_shape())
-            
-            # print(f"{opts[0][1]*1e3:10.2f} ms from {len(opts):3d} actions", lin.colored_shape())
-
-
-
-
-
-        # while 1:
-        #   acted_lins = get_linearizer_actions(lin)
-        #   timed_lins = {k:time_linearizer(v, rawbufs) for k,v in acted_lins.items()}
-        #   opts = sorted(timed_lins.items(), key=lambda x: x[1])
-        #   if opts[0][0] == 0: break   # we are done
-        #   lin = acted_lins[opts[0][0]]
-        #   if DEBUG >= 1: print(f"{opts[0][1]*1e3:10.2f} ms from {len(opts):3d} actions", lin.colored_shape())
-        # global_db[str(lin.ast)] = lin.applied_opts
       lins.append(lin)
 
     # benchmark the programs
