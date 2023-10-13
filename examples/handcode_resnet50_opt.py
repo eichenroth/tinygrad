@@ -70,11 +70,11 @@ if __name__ == "__main__":
             for k, v in acted_lins.items():
               experiments.append((v, opts + [k], time_linearizer(v, rawbufs)))
           experiments = sorted(experiments, key=lambda x: x[2])
-          if sum(t for _, _, t in experiments[:BEAM]) > sum(t for _, _, t in beams): lins.append(beams[0][0]); break
+          if sum(t for _, _, t in experiments[:BEAM]) * 1.01 > sum(t for _, _, t in beams): lins.append(beams[0][0]); break
           beams = experiments[:BEAM]
 
           if DEBUG >= 1:
-            for l, opts, t in beams: print(f"{t*1e3:10.2f} ms from {len(opts):3d} actions", l.colored_shape(), tuple(opts))
+            for l, opts, t in beams: print(f"{t*1e3:10.2f} ms from {len(opts):3d} actions", l.colored_shape())
 
     # benchmark the programs
     choices = []
