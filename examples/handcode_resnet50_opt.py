@@ -65,7 +65,7 @@ if __name__ == "__main__":
           acted_lins: List[Tuple[int, Linearizer]] = flatten([get_linearizer_actions(lin).items() for lin, _ in beam])
           timed_lins = [(v,time_linearizer(v, rawbufs)) for k,v in acted_lins if k != 0]
           sorted_lins = sorted(timed_lins, key=lambda x: x[1])
-          if (len(sorted_lins) == 0 or sum(t for _, t in sorted_lins[:getenv("BEAM")]) * 1.01 > sum(t for _, t in beam)): break
+          if (len(sorted_lins) == 0 or beam[0][1] < sorted_lins[0][1]): break # we didn't get faster
           beam = sorted_lins[:getenv("BEAM")]
           if DEBUG >= 1:
             for l, tm in beam: print(f"{tm*1e3:10.2f} ms from {len(l.applied_opts):3d} actions", l.colored_shape())
