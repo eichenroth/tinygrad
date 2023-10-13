@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 from models.resnet import ResNet50
 from tinygrad.tensor import Tensor
 from tinygrad.ops import LoadOps, Device, Compiled
@@ -32,7 +32,7 @@ if __name__ == "__main__":
   # work with the schedule
   total_tm = 0
   running_gflops = 0
-  for i,si in enumerate(sched):
+  for i,si in enumerate(sched[:20]): # 110 ms
     if DEBUG >= 2: print_tree(si.ast)
 
     # create output/input buffers (NOTE: bufs_from_lin is slower, so we don't use it. TODO: fix)
@@ -59,14 +59,36 @@ if __name__ == "__main__":
         for ao in global_db[str(lin.ast)]:
           lin.apply_opt(ao)
       else:
+        BEAM = 4
+
+        beams: List[Tuple[Linearizer, List[int], float]] = [(lin, [], float('inf'))] # lin, opts, time
         while 1:
-          acted_lins = get_linearizer_actions(lin)
-          timed_lins = {k:time_linearizer(v, rawbufs) for k,v in acted_lins.items()}
-          opts = sorted(timed_lins.items(), key=lambda x: x[1])
-          if opts[0][0] == 0: break   # we are done
-          lin = acted_lins[opts[0][0]]
-          if DEBUG >= 1: print(f"{opts[0][1]*1e3:10.2f} ms from {len(opts):3d} actions", lin.colored_shape())
-        global_db[str(lin.ast)] = lin.applied_opts
+          experiments: List[Tuple[Linearizer, List[int], float]] = []
+          for l, opts, _ in beams:
+            acted_lins = get_linearizer_actions(l)
+            for k, v in acted_lins.items():
+              experiments.append((v, opts + [k], time_linearizer(v, rawbufs)))
+          experiments = sorted(experiments, key=lambda x: x[2])
+          if [t for _,_,t in experiments[:BEAM]] == [t for _, _, t in beams]: lin = experiments[0][0]; break
+          beams = experiments[:BEAM]
+
+          if DEBUG >= 1:
+            for l, opts, t in beams: print(f"{t*1e3:10.2f} ms from {len(opts):3d} actions", l.colored_shape())
+            
+            # print(f"{opts[0][1]*1e3:10.2f} ms from {len(opts):3d} actions", lin.colored_shape())
+
+
+
+
+
+        # while 1:
+        #   acted_lins = get_linearizer_actions(lin)
+        #   timed_lins = {k:time_linearizer(v, rawbufs) for k,v in acted_lins.items()}
+        #   opts = sorted(timed_lins.items(), key=lambda x: x[1])
+        #   if opts[0][0] == 0: break   # we are done
+        #   lin = acted_lins[opts[0][0]]
+        #   if DEBUG >= 1: print(f"{opts[0][1]*1e3:10.2f} ms from {len(opts):3d} actions", lin.colored_shape())
+        # global_db[str(lin.ast)] = lin.applied_opts
       lins.append(lin)
 
     # benchmark the programs
