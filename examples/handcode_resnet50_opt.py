@@ -60,7 +60,7 @@ if __name__ == "__main__":
           lin.apply_opt(ao)
         lins.append(lin)
       else:
-        beam: List[Tuple[Linearizer, float]] = [(lin, float('inf'))]
+        beam: List[Tuple[Linearizer, float]] = [(lin, float('inf'))] # linearizer, time
         while 1:
           acted_lins: List[Tuple[int, Linearizer]] = flatten([get_linearizer_actions(lin).items() for lin, _ in beam])
           timed_lins = [(v,time_linearizer(v, rawbufs)) for k,v in acted_lins if k != 0]
@@ -68,7 +68,7 @@ if __name__ == "__main__":
           if (len(sorted_lins) == 0 or beam[0][1] < sorted_lins[0][1]): break # we didn't get faster
           beam = sorted_lins[:getenv("BEAM")]
           if DEBUG >= 1:
-            for l, tm in beam: print(f"{tm*1e3:10.2f} ms from {len(l.applied_opts):3d} actions", l.colored_shape())
+            for l, tm in beam: print(f"{tm*1e3:10.2f} ms from {len(l.applied_opts):3d} actions {l.colored_shape()} | {[(o.op.name, o.axis, o.amt) for o in l.applied_opts]}")
         lin = beam[0][0]
         global_db[str(lin.ast)] = lin.applied_opts
       lins.append(lin)
