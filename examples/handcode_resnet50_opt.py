@@ -4,7 +4,7 @@ from tinygrad.tensor import Tensor
 from tinygrad.ops import LoadOps, Device, Compiled
 from tinygrad.codegen.linearizer import Linearizer
 from tinygrad.codegen.search import bufs_from_lin, time_linearizer, get_linearizer_actions
-from tinygrad.helpers import ansilen, DEBUG, getenv
+from tinygrad.helpers import ansilen, DEBUG, getenv, flatten
 from tinygrad.graph import print_tree
 from tinygrad.lazy import vars_from_ast
 from tinygrad.shape.symbolic import sym_infer
@@ -32,7 +32,7 @@ if __name__ == "__main__":
   # work with the schedule
   total_tm = 0
   running_gflops = 0
-  for i,si in enumerate(sched[:20]): # 110 ms
+  for i,si in enumerate(sched[:20]): # 103.3 ms
     if DEBUG >= 2: print_tree(si.ast)
 
     # create output/input buffers (NOTE: bufs_from_lin is slower, so we don't use it. TODO: fix)
@@ -52,29 +52,26 @@ if __name__ == "__main__":
     if lin.apply_tensor_cores():
       lins.append(lin)
 
-    # try a greedy search
-    if getenv("GREEDY"):
+    # try a beam search
+    if getenv("BEAM"):
       lin = Linearizer(si.ast, device.linearizer_opts)
       if str(lin.ast) in global_db:
         for ao in global_db[str(lin.ast)]:
           lin.apply_opt(ao)
         lins.append(lin)
       else:
-        BEAM = 4
-
-        beams: List[Tuple[Linearizer, List[int], float]] = [(lin, [], float('inf'))] # lin, opts, time
+        beam: List[Tuple[Linearizer, float]] = [(lin, float('inf'))]
         while 1:
-          experiments: List[Tuple[Linearizer, List[int], float]] = []
-          for l, opts, _ in beams:
-            acted_lins = get_linearizer_actions(l)
-            for k, v in acted_lins.items():
-              experiments.append((v, opts + [k], time_linearizer(v, rawbufs)))
-          experiments = sorted(experiments, key=lambda x: x[2])
-          if sum(t for _, _, t in experiments[:BEAM]) * 1.01 > sum(t for _, _, t in beams): lins.append(beams[0][0]); break
-          beams = experiments[:BEAM]
-
+          acted_lins: List[Tuple[int, Linearizer]] = flatten([get_linearizer_actions(lin).items() for lin, _ in beam])
+          timed_lins = [(v,time_linearizer(v, rawbufs)) for k,v in acted_lins if k != 0]
+          sorted_lins = sorted(timed_lins, key=lambda x: x[1])
+          if (len(sorted_lins) == 0 or sum(t for _, t in sorted_lins[:getenv("BEAM")]) * 1.01 > sum(t for _, t in beam)): break
+          beam = sorted_lins[:getenv("BEAM")]
           if DEBUG >= 1:
-            for l, opts, t in beams: print(f"{t*1e3:10.2f} ms from {len(opts):3d} actions", l.colored_shape())
+            for l, tm in beam: print(f"{tm*1e3:10.2f} ms from {len(l.applied_opts):3d} actions", l.colored_shape())
+        lin = beam[0][0]
+        global_db[str(lin.ast)] = lin.applied_opts
+      lins.append(lin)
 
     # benchmark the programs
     choices = []
