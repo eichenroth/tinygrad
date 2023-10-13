@@ -3,7 +3,7 @@ from models.resnet import ResNet50
 from tinygrad.tensor import Tensor
 from tinygrad.ops import LoadOps, Device, Compiled
 from tinygrad.codegen.linearizer import Linearizer
-from tinygrad.codegen.search import bufs_from_lin, time_linearizer, get_linearizer_actions
+from tinygrad.codegen.search import time_linearizer, get_linearizer_actions
 from tinygrad.helpers import ansilen, DEBUG, getenv, flatten
 from tinygrad.graph import print_tree
 from tinygrad.lazy import vars_from_ast
