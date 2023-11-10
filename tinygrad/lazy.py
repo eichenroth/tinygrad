@@ -146,8 +146,7 @@ class LazyBuffer:
   @property
   def buffers(self) -> Tuple[LazyBuffer, ...]: return (self,)
   def map_buffers(self, real_srcs: Mapping[Any, Union[LazyBuffer, LazyOp]]): return real_srcs.get(self, self)
-  def get_lazyops_gen(self) -> Generator[LazyOp, None, None]: return; yield
-  def get_lazyops(self) -> List[LazyOp]: return [*self.get_lazyops_gen()]
+  def get_lazyops(self) -> Generator[LazyOp, None, None]: return; yield
 
   # *** scheduling ***
 
