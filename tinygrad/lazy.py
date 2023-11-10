@@ -106,8 +106,8 @@ class LazyBuffer:
     self._realized: Optional[RawBuffer] = src
     self.output_buffer: Optional[RawBuffer] = None   # TODO: do we really need this? or can we just use realized
     # TODO: does children have to be a ref count instead of a set? can a Buffer be a double child?
-    self.children: WeakSet = WeakSet()
-    self.views: WeakSet = WeakSet()
+    self.children: WeakSet[LazyBuffer] = WeakSet()
+    self.views: WeakSet[LazyBuffer] = WeakSet()
     # NOTE: op should be read only after construction of LazyBuffer. it is now with schedule
     if op is not None:
       self.op: LazyOp = op
