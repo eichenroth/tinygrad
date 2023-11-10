@@ -1,6 +1,6 @@
 from __future__ import annotations
 import sys, operator, math, functools
-from typing import Callable, Optional, Tuple, Union, List, Dict, Any, cast, Mapping
+from typing import Callable, Generator, Optional, Tuple, Union, List, Dict, Any, cast, Mapping
 from weakref import ref, WeakSet, WeakValueDictionary
 
 import numpy as np
@@ -146,7 +146,8 @@ class LazyBuffer:
   @property
   def buffers(self) -> Tuple[LazyBuffer, ...]: return (self,)
   def map_buffers(self, real_srcs: Mapping[Any, Union[LazyBuffer, LazyOp]]): return real_srcs.get(self, self)
-  def get_lazyops(self) -> List[LazyOp]: return []
+  def get_lazyops_gen(self) -> Generator[LazyOp, None, None]: return; yield
+  def get_lazyops(self) -> List[LazyOp]: return [*self.get_lazyops_gen()]
 
   # *** scheduling ***
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 import importlib, inspect, functools, pathlib
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Union, Type, Tuple, Any, List, Optional, Dict, Callable, Mapping
+from typing import Generator, TYPE_CHECKING, Union, Type, Tuple, Any, List, Optional, Dict, Callable, Mapping
 from tinygrad.helpers import ansilen, prod, DEBUG, getenv, GlobalCounters, DType, colored, BEAM, NOOPT
 from tinygrad.runtime.lib import RawBuffer
 from tinygrad.shape.symbolic import Variable, sym_infer
@@ -64,7 +64,10 @@ class LazyOp:
   def key(self): return (self.op, tuple(map(lambda x: getattr(x, "key", x), self.src)), getattr(self.arg, "key", self.arg))
 
   def map_buffers(self, real_srcs: Mapping[Any, Union[LazyBuffer, LazyOp]]) -> LazyOp: return LazyOp(self.op, tuple([y.map_buffers(real_srcs) if y not in real_srcs else real_srcs[y] for y in self.src]), self.arg)
-  def get_lazyops(self) -> List[LazyOp]: return [self] + [item for x in self.src for item in x.get_lazyops()]
+  def get_lazyops_gen(self) -> Generator[LazyOp, None, None]:
+    yield self
+    for x in self.src: yield from x.get_lazyops_gen()
+  def get_lazyops(self) -> List[LazyOp]: return list(self.get_lazyops_gen())
 
   def replace_with_movement_ops(self:LazyOp, ops:List[Tuple[MovementOps, Tuple[Any, ...]]]) -> 'LazyBuffer':
     assert self.op in BinaryOps or self.op in UnaryOps or self.op in TernaryOps
