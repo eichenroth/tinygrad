@@ -15,6 +15,8 @@ from tinygrad.realize import run_schedule
 
 # An instantiation of the Function is the Context
 class Function:
+  __slots__ = ('device', 'needs_input_grad', 'requires_grad', 'parents')
+
   def __init__(self, device:str, *tensors:Tensor):
     self.device = device
     self.needs_input_grad = [t.requires_grad for t in tensors]
