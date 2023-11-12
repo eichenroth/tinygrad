@@ -1,7 +1,7 @@
 from __future__ import annotations
 import sys, operator, math, functools
 from typing import Callable, Optional, Tuple, Union, List, Dict, Any, cast, Mapping
-from weakref import WeakSet
+from weakref import ref, WeakSet, WeakValueDictionary
 
 import numpy as np
 from tinygrad.helpers import prod, getenv, DType, dtypes, flatten, dedup, merge_dicts, all_int
@@ -82,12 +82,13 @@ def get_movementroot_contiguous(x:LazyBuffer) -> LazyBuffer: return get_movement
 
 def vars_from_ast(ast:LazyOp) -> List[Variable]: return dedup(functools.reduce(operator.add, [x.arg.st.vars() for x in ast.get_lazyops() if x.op in BufferOps], []))
 
-lazycache: Dict = {}
+lazycache: WeakValueDictionary = WeakValueDictionary()
 def create_lazybuffer(device:str, st:ShapeTracker, optype:OpType, op:LazyOp, dtype:DType, base:Optional[LazyBuffer]=None):
   # fromcpu aren't cached
   if not LAZYCACHE or (optype is LoadOps and op.op in {LoadOps.EMPTY, LoadOps.RAND, LoadOps.CONST}): return LazyBuffer(device, st, optype, op, dtype, base=base)
 
-  wop = (device, dtype, optype, op.key, base.key if base else None)
+  # wop is the deduping key. i feel this used to compare more deeply
+  wop = (device, dtype, optype, ref(op), ref(base) if base else None)
   if wop in lazycache:
     for x in op.buffers: x.children.add(lazycache[wop])
     return lazycache[wop]
