@@ -182,7 +182,7 @@ class LazyBuffer:
   # create a constant with the shape and dtype of self
   def const(self, val:Union[float, int]) -> LazyBuffer:
     # NOTE: dtypes.from_np(self.dtype.np) to deal with image types
-    return self.loadop(LoadOps.CONST, tuple(), dtypes.from_np(self.dtype.np), self.device, arg=val).reshape((1,)*len(self.shape)).expand(self.shape)
+    return LazyBuffer.loadop(LoadOps.CONST, tuple(), dtypes.from_np(self.dtype.np), self.device, arg=val).reshape((1,)*len(self.shape)).expand(self.shape)
 
   def copy_to_device(self, device:str) -> LazyBuffer:
     # back off a FROM if it's a double FROM
@@ -196,7 +196,7 @@ class LazyBuffer:
       # TODO: based lazybuffers shouldn't take dtype or var_vals, same issue in movementops
       return create_lazybuffer(self.device, ShapeTracker.from_shape(tuple(self.shape)), LoadOps, LazyOp(LoadOps.CONTIGUOUS, (self,), None), self.dtype, base=self.base)
     # real contiguous, this will turn into a UnaryOps.NOOP
-    return self.loadop(LoadOps.CONTIGUOUS, self.shape, self.dtype, self.device, src=self)
+    return LazyBuffer.loadop(LoadOps.CONTIGUOUS, self.shape, self.dtype, self.device, src=self)
 
   @staticmethod
   def fromCPU(x: np.ndarray) -> LazyBuffer:
