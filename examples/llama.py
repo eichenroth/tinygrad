@@ -562,7 +562,7 @@ After you are done speaking, output [EOS]. You are not Chad.
         probs_np = probs.numpy()
         tok = int(np.random.choice(len(probs_np), p=probs_np))
 
-      if args.profile: stop_profile(pr, sort='time')
+      if args.profile: stop_profile(pr)
 
       # use the kv cache
       start_pos = len(toks)
