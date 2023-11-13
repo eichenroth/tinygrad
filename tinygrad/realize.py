@@ -21,7 +21,7 @@ def run_schedule(schedule:List[ScheduleItem], disable_logging=False):
     if DEBUG >= 3: print_tree(si.ast)
     if si.ast.op in LoadOps:
       # confirm the LoadOps are contiguous and in order
-      for i,s in enumerate(si.ast.src): assert isinstance(s, LazyOp) and s.op == BufferOps.MEM and s.arg.idx == i+1 and s.arg.st.contiguous, f"bad LoadOps src {i}: {s}"
+      assert all(isinstance(s, LazyOp) and s.op == BufferOps.MEM and s.arg.idx == i+1 and s.arg.st.contiguous for i,s in enumerate(si.ast.src)), f"bad LoadOps srcs: {si.ast.src}"
       LOAD_OPS_DISPATCHER[cast(LoadOps, si.ast.op)](si.out, *si.inputs)
     else:
       si.out.realized = Device[si.out.device].exec_ast(si.ast, output=si.out, inputs=si.inputs, var_vals=si.var_vals, **si.out._device_extra_args())

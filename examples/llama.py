@@ -114,7 +114,6 @@ class TransformerBlock:
     self.ffn_norm = RMSNorm(dim, norm_eps)
 
   def __call__(self, x:Tensor, cache_k:Optional[Tensor], cache_v:Optional[Tensor], start_pos:int, freqs_cis:Tensor, mask:Optional[Tensor], jit_ctx:Optional[Dict[Variable,int]]=None):
-    bsz, seqlen, _ = x.shape
     if JIT and mask is None:
       assert cache_k is not None and cache_v is not None, "no cache"
       pos = Variable("pos", 1, 1024).bind(start_pos)
