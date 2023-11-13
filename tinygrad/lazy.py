@@ -153,9 +153,9 @@ class LazyBuffer:
 
   def schedule(self, seen=None) -> List[ScheduleItem]:
     if seen is None: seen = set()
-    if self in seen or self.realized or self.is_unrealized_const(): return []
+    if self in seen or self.realized or self.base.op.op == LoadOps.CONST: return []
     seen.add(self)
-    if self.base != self: return self.base.schedule(seen)
+    if self.base is not self: return self.base.schedule(seen)
 
     # rewrite unbased CONTIGUOUS into UnaryOps.NOOP
     op = self.op if self.op.op != LoadOps.CONTIGUOUS else LazyOp(UnaryOps.NOOP, self.op.src)
