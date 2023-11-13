@@ -13,9 +13,8 @@ def run_schedule(schedule:List[ScheduleItem], disable_logging=False):
   # HACK: images can be not usable due to shape
   if IMAGE >= 2: schedule = fix_schedule_for_images(schedule)
 
-  # NOTE: if you for loop the schedule it's slow because nothing frees
-  while len(schedule):
-    si = schedule.pop(0)
+  for i, si in enumerate(schedule):
+    schedule[i] = None # type: ignore
     if not disable_logging: log_schedule_item(si)
     assert all(x.realized for x in si.inputs), "can't run schedule, some inputs aren't realized"
     if DEBUG >= 3: print_tree(si.ast)
