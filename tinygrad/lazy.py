@@ -99,6 +99,7 @@ def create_lazybuffer(device:str, st:ShapeTracker, optype:OpType, op:LazyOp, dty
 UNSAFE_PAD_OPS = {BinaryOps.DIV, BinaryOps.CMPLT, UnaryOps.LOG2, UnaryOps.EXP2, UnaryOps.RECIP}
 
 class LazyBuffer:
+  __slots__ = ('st', 'device', 'shape', 'optype', '_dtype', '_realized', 'output_buffer', 'children', 'views', 'op', '_base', '__weakref__' )
   __deletable__ = ('op',)
   def __init__(self, device:str, st:ShapeTracker, optype:OpType, op:Optional[LazyOp], dtype:DType, src:Optional[RawBuffer]=None, base:Optional[LazyBuffer]=None):
     self.st: ShapeTracker = st
@@ -106,8 +107,8 @@ class LazyBuffer:
     self._realized: Optional[RawBuffer] = src
     self.output_buffer: Optional[RawBuffer] = None   # TODO: do we really need this? or can we just use realized
     # TODO: does children have to be a ref count instead of a set? can a Buffer be a double child?
-    self.children: WeakSet = WeakSet()
-    self.views: WeakSet = WeakSet()
+    self.children: WeakSet[LazyBuffer] = WeakSet()
+    self.views: WeakSet[LazyBuffer] = WeakSet()
     # NOTE: op should be read only after construction of LazyBuffer. it is now with schedule
     if op is not None:
       self.op: LazyOp = op
@@ -152,9 +153,9 @@ class LazyBuffer:
 
   def schedule(self, seen=None) -> List[ScheduleItem]:
     if seen is None: seen = set()
-    if self in seen or self.realized or self.is_unrealized_const(): return []
+    if self in seen or self.realized or self.base.op.op == LoadOps.CONST: return []
     seen.add(self)
-    if self.base != self: return self.base.schedule(seen)
+    if self.base is not self: return self.base.schedule(seen)
 
     # rewrite unbased CONTIGUOUS into UnaryOps.NOOP
     op = self.op if self.op.op != LoadOps.CONTIGUOUS else LazyOp(UnaryOps.NOOP, self.op.src)
@@ -181,7 +182,7 @@ class LazyBuffer:
   # create a constant with the shape and dtype of self
   def const(self, val:Union[float, int]) -> LazyBuffer:
     # NOTE: dtypes.from_np(self.dtype.np) to deal with image types
-    return self.loadop(LoadOps.CONST, tuple(), dtypes.from_np(self.dtype.np), self.device, arg=val).reshape((1,)*len(self.shape)).expand(self.shape)
+    return LazyBuffer.loadop(LoadOps.CONST, tuple(), dtypes.from_np(self.dtype.np), self.device, arg=val).reshape((1,)*len(self.shape)).expand(self.shape)
 
   def copy_to_device(self, device:str) -> LazyBuffer:
     # back off a FROM if it's a double FROM
@@ -195,7 +196,7 @@ class LazyBuffer:
       # TODO: based lazybuffers shouldn't take dtype or var_vals, same issue in movementops
       return create_lazybuffer(self.device, ShapeTracker.from_shape(tuple(self.shape)), LoadOps, LazyOp(LoadOps.CONTIGUOUS, (self,), None), self.dtype, base=self.base)
     # real contiguous, this will turn into a UnaryOps.NOOP
-    return self.loadop(LoadOps.CONTIGUOUS, self.shape, self.dtype, self.device, src=self)
+    return LazyBuffer.loadop(LoadOps.CONTIGUOUS, self.shape, self.dtype, self.device, src=self)
 
   @staticmethod
   def fromCPU(x: np.ndarray) -> LazyBuffer:

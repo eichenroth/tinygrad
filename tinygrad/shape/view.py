@@ -32,7 +32,7 @@ class View:
 
   def vars(self) -> List[Variable]:
     flatten_mask = tuple(x for m in self.mask for x in m) if self.mask is not None else tuple()
-    return dedup(functools.reduce(operator.add, [x.vars() for x in self.shape+self.strides+(self.offset,)+flatten_mask if isinstance(x, Node)], []))
+    return dedup(functools.reduce(operator.add, [x.vars() for x in (*self.shape,*self.strides,self.offset,*flatten_mask) if isinstance(x, Node)], []))
 
   def unbind(self) -> View:
     unbound_vars:Dict[VariableOrNum,Node] = {v: v.unbind()[0] for v in self.vars() if v.val is not None}

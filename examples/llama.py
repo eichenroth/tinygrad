@@ -4,7 +4,7 @@
 #typeguard.importhook.install_import_hook('tinygrad')
 
 from pathlib import Path
-import functools, sys, argparse, json, os
+import sys, argparse, json
 import numpy as np
 np.set_printoptions(linewidth=200)
 from typing import Optional, Tuple, Dict
@@ -16,7 +16,7 @@ from tinygrad.nn import Embedding, Linear
 from tinygrad.nn.state import safe_load, torch_load, load_state_dict
 from tinygrad.helpers import GlobalCounters
 from tinygrad.jit import TinyJit, JIT_SUPPORTED_DEVICE
-from tinygrad.shape.symbolic import Variable, sym_infer
+from tinygrad.shape.symbolic import Variable
 
 JIT = getenv("JIT", 0 if CI else int(Device.DEFAULT in JIT_SUPPORTED_DEVICE))
 
@@ -114,7 +114,6 @@ class TransformerBlock:
     self.ffn_norm = RMSNorm(dim, norm_eps)
 
   def __call__(self, x:Tensor, cache_k:Optional[Tensor], cache_v:Optional[Tensor], start_pos:int, freqs_cis:Tensor, mask:Optional[Tensor], jit_ctx:Optional[Dict[Variable,int]]=None):
-    bsz, seqlen, _ = x.shape
     if JIT and mask is None:
       assert cache_k is not None and cache_v is not None, "no cache"
       pos = Variable("pos", 1, 1024).bind(start_pos)
@@ -563,7 +562,7 @@ After you are done speaking, output [EOS]. You are not Chad.
         probs_np = probs.numpy()
         tok = int(np.random.choice(len(probs_np), p=probs_np))
 
-      if args.profile: stop_profile(pr, sort='time')
+      if args.profile: stop_profile(pr)
 
       # use the kv cache
       start_pos = len(toks)
